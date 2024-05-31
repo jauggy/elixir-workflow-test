@@ -1,0 +1,96 @@
+<div style="height: 15px;">&nbsp;</div>
+
+<div class="row">
+  <.menu_card
+    :if={allow_any?(@current_user, ~w(Contributor Overwatch))}
+    icon={Teiserver.icon()}
+    icon_class="fa-duotone"
+    url={~p"/teiserver/admin"}
+  >
+    Administration
+  </.menu_card>
+
+  <.menu_card
+    :if={false and allow?(@current_user, "Moderator")}
+    icon="question"
+    icon_class="fa-duotone"
+    url={~p"/teiserver/admin"}
+  >
+    Appeals
+  </.menu_card>
+
+  <.menu_card
+    :if={allow?(@current_user, "Overwatch")}
+    icon={Teiserver.Moderation.overwatch_icon()}
+    icon_class="fa-duotone"
+    url={~p"/moderation/overwatch"}
+  >
+    Overwatch
+  </.menu_card>
+
+  <.menu_card
+    :if={allow_any?(@current_user, ~w(Contributor Overwatch))}
+    icon={StylingHelper.icon(:summary)}
+    icon_class="fa-duotone"
+    url={~p"/teiserver/reports"}
+  >
+    Reports
+  </.menu_card>
+</div>
+
+<div class="row">
+  <.menu_card icon={Teiserver.Chat.RoomMessageLib.icon()} icon_class="fa-duotone" url={~p"/chat"}>
+    Chat
+  </.menu_card>
+
+  <.menu_card icon={Teiserver.Lobby.icon()} icon_class="fa-duotone" url={~p"/battle/lobbies"}>
+    Lobbies
+  </.menu_card>
+
+  <.menu_card
+    icon={Teiserver.Account.PartyLib.icon()}
+    icon_class="fa-duotone"
+    url={~p"/teiserver/account/parties"}
+  >
+    Parties
+  </.menu_card>
+
+  <.menu_card
+    icon={Teiserver.Game.QueueLib.icon()}
+    icon_class="fa-duotone"
+    url={~p"/teiserver/matchmaking/queues"}
+  >
+    Matchmaking
+  </.menu_card>
+
+  <.menu_card icon={Teiserver.Battle.MatchLib.icon()} icon_class="fa-duotone" url={~p"/battle"}>
+    Matches
+  </.menu_card>
+
+  <.menu_card icon={Teiserver.Microblog.icon()} icon_class="fa-duotone" url={~p"/microblog"}>
+    Microblog
+  </.menu_card>
+</div>
+
+<div class="row">
+  <.menu_card icon={Teiserver.Account.UserLib.icon()} icon_class="fa-duotone" url={~p"/profile"}>
+    Account
+  </.menu_card>
+
+  <.menu_card
+    icon={Teiserver.Account.RelationshipLib.icon()}
+    icon_class="fa-duotone"
+    url={~p"/account/relationship"}
+  >
+    Relationships
+  </.menu_card>
+</div>
+
+<div class="row">
+  <div class="col-sm-6 col-md-4 col-lg-3 col-xl-2 col-xxl-1 menu-card">
+    <.link href={~p"/logout"} method="post" class="link">
+      <Fontawesome.icon icon="sign-out-alt" style="duotone" size="4x" />
+      <br /> Logout
+    </.link>
+  </div>
+</div>

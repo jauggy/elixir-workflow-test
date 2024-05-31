@@ -1,0 +1,113 @@
+<% bsname = @view_colour %>
+
+<%= render(TeiserverWeb.Admin.GeneralView, "sub_menu.html", %{
+  active: "users",
+  conn: Map.put(@socket, :permissions, @current_user.permissions)
+}) %>
+
+<div class="row">
+  <div class="col-md-12">
+    <div class={"card border-#{bsname} page-card"}>
+      <div class="card-body">
+        <div class="float-end">
+          <a href={~p"/teiserver/admin/user/#{@user.id}"} class={"btn btn-#{bsname}"}>
+            Show
+          </a>
+
+          <a href={~p"/teiserver/admin/user/#{@user.id}/edit"} class={"btn btn-#{bsname}"}>
+            Edit
+          </a>
+        </div>
+
+        <h3>
+          <%= @user.name %>
+        </h3>
+
+        <ul>
+          <li>Bot: <%= Teiserver.CacheUser.is_bot?(@user) %></li>
+          <li>Moderator: <%= Teiserver.CacheUser.is_moderator?(@user) %></li>
+          <li>
+            Battle:
+            <%= if @client != nil and @client.lobby_id != nil do %>
+              <%= live_redirect("Battle ##{@client.lobby_id}",
+                to: Routes.ts_battle_lobby_show_path(@socket, :show, @client.lobby_id),
+                class: ""
+              ) %> &nbsp;&nbsp;&nbsp;
+              <%= if @current_client do %>
+                <span phx-click="join-lobby" class={"btn btn-#{bsname} btn-sm"}>
+                  Join
+                </span>
+              <% end %>
+            <% else %>
+              nil
+            <% end %>
+          </li>
+        </ul>
+
+        <%= if allow?(@current_user, "admin.dev.developer") do %>
+          <div class="row">
+            <div class="col-md-6">
+              <h4>Client</h4>
+              <pre>
+      <%= Kernel.inspect @client, pretty: true, limit: :infinity %>
+    </pre>
+            </div>
+            <div class="col-md-6">
+              <h4>User</h4>
+              <pre>
+      <%= Kernel.inspect @user, pretty: true, limit: :infinity %>
+    </pre>
+            </div>
+          </div>
+        <% end %>
+        <br />
+
+        <div class="float-end">
+          <%= if @server_debug_messages do %>
+            <span class={"btn btn-#{bsname} mx-2"} phx-click="disable-server-message-logging">
+              Disable server message logging
+            </span>
+          <% else %>
+            <span
+              class={"btn btn-outline-#{bsname} mx-2"}
+              phx-click="enable-server-message-logging"
+            >
+              Enable server message logging
+            </span>
+          <% end %>
+
+          <%= if @client_debug_messages do %>
+            <span class={"btn btn-#{bsname} mx-2"} phx-click="disable-client-message-logging">
+              Disable client message logging
+            </span>
+          <% else %>
+            <span
+              class={"btn btn-outline-#{bsname} mx-2"}
+              phx-click="enable-client-message-logging"
+            >
+              Enable client message logging
+            </span>
+          <% end %>
+
+          <%= if @client != nil and @client.lobby_client == "LuaLobby Chobby" do %>
+            <span class="btn btn-warning mx-2" phx-click="force-error-log">
+              Error log
+            </span>
+          <% end %>
+
+          <span class="btn btn-danger mx-2" phx-click="force-reconnect">
+            Force reconnect
+          </span>
+
+          <span class="btn btn-danger2 mx-2" phx-click="force-flood">
+            Engage flood protection
+          </span>
+        </div>
+
+        <span>
+          <%= live_redirect("Back", to: ~p"/teiserver/admin/client", class: "btn btn-secondary") %>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

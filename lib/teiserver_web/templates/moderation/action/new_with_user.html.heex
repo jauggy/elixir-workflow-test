@@ -1,0 +1,541 @@
+<% discord_link = Application.get_env(:teiserver, Teiserver)[:discord]
+bsname = view_colour() %>
+
+<script type="text/javascript" charset="utf-8">
+  $(function() {
+    var selected_tab = window.location.hash.substr(1).replace("_tab", "");
+    $('#the_tabs a:first').tab('show');
+    $('#the_tabs [href="#' + selected_tab + '_tab"]').tab('show');
+  });
+
+  function select_all_reports () {
+    $("#reports-row .form-check-input").prop("checked", true);
+  }
+
+  function clear_all_reports () {
+    $("#reports-row .form-check-input").prop("checked", false);
+  }
+</script>
+
+<TeiserverWeb.Moderation.ModerationComponents.sub_menu
+  active="actions"
+  view_colour={view_colour()}
+/>
+
+<div class="row section-menu">
+  <div class="col-md-12">
+    <div class={"card border-#{bsname}"}>
+      <div class="card-body">
+        <%= render(
+          TeiserverWeb.Moderation.ActionView,
+          "section_menu.html",
+          Map.merge(assigns, %{
+            basic_search: "",
+            show_search: false,
+            active: "new"
+          })
+        ) %>
+
+        <hr />
+        <div class="float-end">
+          <a class={"btn btn-outline-#{bsname}"} href={~p"/teiserver/admin/user/#{@user}"}>
+            View user
+          </a>
+        </div>
+
+        <h3>Adding action against <%= @user.name %></h3>
+
+        <div class="row">
+          <div class="col-md-12 mb-4">
+            <%= form_for @changeset, Routes.moderation_action_path(@conn, :create), fn f -> %>
+              <%= if @changeset.action do %>
+                <div class="alert alert-danger">
+                  <p>Oops, something went wrong! Please check the errors below.</p>
+                </div>
+              <% end %>
+
+              <input type="hidden" name="action[target_id]" value={@user.id} />
+
+              <div class="row">
+                <div class="col-lg-6">
+                  <div class="form-group my-2">
+                    <%= label(f, :reason, class: "control-label") %>
+                    <%= textarea(f, :reason,
+                      class: "form-control",
+                      autofocus: :autofocus,
+                      rows: 3,
+                      required: "required"
+                    ) %>
+                    <%= error_tag(f, :reason) %>
+                  </div>
+                </div>
+
+                <div class="col-lg-6">
+                  <div class="form-group my-2">
+                    <%= label(f, :notes, class: "control-label") %>
+                    <%= textarea(f, :notes,
+                      class: "form-control",
+                      rows: 3
+                    ) %>
+                    <%= error_tag(f, :notes) %>
+                  </div>
+                </div>
+
+                <div class="col-lg-6">
+                  <div class="form-group my-2">
+                    <%= label(f, :expires, class: "control-label") %>
+                    <%= text_input(f, :expires, class: "form-control", required: "required") %>
+                    <%= error_tag(f, :expires) %>
+                  </div>
+                </div>
+
+                <div class="col-lg-6">
+                  <div class="form-group my-2">
+                    <%= label(f, :score_modifier, class: "control-label") %>
+                    <%= text_input(f, :score_modifier, class: "form-control") %>
+                    <%= error_tag(f, :score_modifier) %>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-12">
+                  <h5>Restrictions</h5>
+                </div>
+                <%= for {section, r_list} <- @restrictions_lists do %>
+                  <div class="col restrictions-col">
+                    <strong><%= section %></strong>
+                    <%= for r <- r_list do %>
+                      <% r_clean = String.replace(r, " ", "_") %>
+                      <%= central_component("checkbox",
+                        id: "action_restriction_#{r_clean}",
+                        name: "action[restrictions][#{r_clean}]",
+                        label: r,
+                        value: r,
+                        checked:
+                          (Ecto.Changeset.get_field(@changeset, :restrictions) || [])
+                          |> Enum.member?(r)
+                      ) %>
+                    <% end %>
+                  </div>
+                <% end %>
+                <%= error_tag(f, :restrictions) %>
+              </div>
+
+              <div class="row">
+                <div class="col mt-3">
+                  <h4>Griefing</h4>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B4 - Griefing (actively sabotaging your team) by');
+      "
+                  >
+                    Griefing by...
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B4 - we take \'reverse\' griefing or vigilantism just as seriously as \'normal\' griefing. If you think someone is griefing, quickly pause the game, calmly discuss with other players whether or not to `!kickban` them, and report them after the match if necessary. Many matches with griefing are winnable until the griefed party decides to escalate the situation.');
+      "
+                  >
+                    Reverse griefing
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B4 - griefing by self-destructing your remaining units **out of spite/with intent to deny them to your team**, which lowers your team\'s chances at victory. If you want to stop playing a match, leave and let your players `/take` your stuff.');
+      "
+                  >
+                    Self-d before leaving
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) A4 - *Leaving a game very early because you don\'t like the teams is not acceptable, instead call a stop vote `!cv stop`. Note that leaving mid-game is acceptable as you are unlikely to disadvantage your allies to such an extent. If abused persistently it will be moderated.*');
+      "
+                  >
+                    Leaving early
+                  </div>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) A4 - *Disregarding the teamwork part of team game when done notoriously can result in you being ostracized from team games. You don\'t have to do everything an ally says but at the same time you are part of the team not against it; this includes giving allies an appropriate amount of space to build and respecting their claim to the available resources on the map*');
+      "
+                  >
+                    Teamwork/resources
+                  </div>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B4 - Examples of griefing include teamkilling, purposefully hurting/**imprisoning**, capturing or reclaiming **allied units without consent** or consistently throwing games with the intent to deny other team members a potential win.');
+      "
+                  >
+                    Stealing units
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B4 - griefing by self-destructing your commander, the last one of your team, while other players are still fighting. If you want to stop playing a match, leave and let your players `/take` your stuff. Comebacks happen; if your team hasn\'t decided it\'s over by a `!resign` vote, don\'t force the result on them.');
+      "
+                  >
+                    Self-d last com
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) A4 - Repeatedly leaving matches in the pre-game phase. There are many valid reasons that a player may need to leave early, but they usualy involve real-life events; not getting the spawn location you want is not a good reason to leave a game.');
+      "
+                  >
+                    Position leave/stop
+                  </div>
+
+                </div>
+
+                <div class="col mt-3">
+                  <h4>Chat</h4>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) A1, A2 - *Respect for all other members is mandatory. Harassment and baiting of any community member, including developers and contributors, is not acceptable. Harassment includes flaming players for using strategies which may seem subjectively suboptimal (high-risk tactics like commander-drops and such) or just low skill plays.*');
+      "
+                  >
+                    A1/A2 harassment/flaming
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+              $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) A3. The *personal moderation* tools such as `!kickban` are meant to be used to act quicker than moderation can help you - for example, if you are currently being griefed - or if you don\'t think it\'s worth involving moderation in a matter, or for managing lobbies pre-match as a boss. Starting a `!kickban` vote on an ally in a running game just because they [TODO] is misuse of that tool.');
+              "
+                  >
+                    Kickban abuse
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B2 - *Abuse especially on the grounds or context of sexism, racism, homophobia, disability, religion, ancestry and similar is never acceptable*');
+      "
+                  >
+                    B2 - discrimination
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B6 - Abuse of the draw tool. *Inappropriate drawings (hate-symbols and such) are communications abuse*.');
+      "
+                  >
+                    B6 - draw tool abuse
+                  </div>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B2 - Spamming the main chat channel.');
+        $('#action_restriction_Room_chat').prop('checked', true);
+        $('#action_restriction_Warning_reminder').prop('checked', true);
+        $('#action_expires').val('7 days');
+      "
+                  >
+                    #main spam
+                  </div>
+                </div>
+
+                <div class="col mt-3">
+                  <h4>Heinous crimes</h4>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_restriction_Login').prop('checked', true);
+        $('#action_expires').val('5 days');
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) C1 - Telling someone else to kill themselves is completely unacceptable.');
+      "
+                  >
+                    KYS
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_restriction_Login').prop('checked', true);
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B5 - spectator cheating is completely unacceptable. Given the severity of this, any future attempts at cheating will result in a permanent ban, as will evasion of the suspension.')
+        $('#action_expires').val('21 days');
+      "
+                  >
+                    Spec cheating
+                  </div>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick={"
+        $('#action_restriction_Login').prop('checked', true);
+        $('#action_restriction_All_lobbies').prop('checked', true);
+        $('#action_restriction_All_chat').prop('checked', true);
+        $('#action_restriction_Note').prop('checked', true);
+        $('#action_reason').val('Permanent ban, possibly a previously banned user.');
+        $('#action_expires').val('1100 years');
+      "}
+                  >
+                    One-off accont permaban (for previous ban evaders)
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col mt-3">
+                  <h4>Moderation evasion</h4>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_restriction_Warning_reminder').prop('checked', true);
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) C5 - evading moderation by creating new accounts is not okay. Continued evasion will lead to a permanent ban.');
+        $('#action_expires').val('1 day');
+      "
+                  >
+                    Moderation evasion - 1st offense
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_restriction_Login').prop('checked', true);
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) C5 - evading moderation, 2nd offense. Continued evasion will lead to a permanent ban.');
+        $('#action_expires').val('1 day');
+      "
+                  >
+                    Moderation evasion - 2nd offense
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_restriction_Login').prop('checked', true);
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) C5 - evading moderation, 3rd offense. We may permanently ban the account if you do not stop trying to evade moderation.');
+        $('#action_expires').val('3 days');
+      "
+                  >
+                    Moderation evasion - 3rd offense
+                  </div>
+                </div>
+
+                <div class="col mt-3">
+                  <h4>Smurfing</h4>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick={"
+        $('#action_restriction_Warning_reminder').prop('checked', true);
+        $('#action_reason').val('Smurf or alt-accounts are not allowed, if you need an exemption or you think there has been an error please use the #open-ticket discord channel to talk to the moderation team. The discord can be accessed at #{discord_link}');
+        $('#action_expires').val('1 day');
+      "}
+                  >
+                    Smurfing - 1st offense
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_restriction_Login').prop('checked', true);
+        $('#action_reason').val('You are continuing to create smurf/alt-accounts. This is against the code of conduct. We may permanently ban you if this continues.');
+        $('#action_expires').val('1 day');
+      "
+                  >
+                    Smurfing - 2nd offense
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_restriction_Login').prop('checked', true);
+        $('#action_reason').val('Smurfing/alt-accounting. 3rd offense, if you do it again we may permanently ban your account.');
+        $('#action_expires').val('3 days');
+      "
+                  >
+                    Smurfing - 3rd offense
+                  </div>
+                </div>
+
+                <div class="col mt-3">
+                  <h4>Specifics</h4>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick={"
+        $('#action_restriction_Warning_reminder').prop('checked', true);
+        $('#action_restriction_All_lobbies').prop('checked', true);
+        $('#action_restriction_All_chat').prop('checked', true);
+        $('#action_restriction_Room_chat').prop('checked', true);
+        $('#action_restriction_Matchmaking').prop('checked', true);
+        $('#action_restriction_Community').prop('checked', true);
+        $('#action_reason').val('[CoC](<https://www.beyondallreason.info/code-of-conduct>) B3 - **Nicknames and clan tags must not be offensive or inappropriate. Impersonation of other players and real-life figures is also forbidden.** Please rename (use the Account button in the top right, then go to Recover/Change) to a name not in breach of the Code of Conduct and use the #open-ticket discord channel to notify the moderation team and have the restriction lifted. The discord can be accessed at #{discord_link} ');
+        $('#action_expires').val('1100 years');
+      "}
+                  >
+                    Add rename
+                  </div>
+
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick="
+        $('#action_restriction_Bridging').prop('checked', true);
+        $('#action_reason').val('Manual unbridging.');
+        $('#action_expires').val('1100 years');
+      "
+                  >
+                    Unbridge
+                  </div>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick={"
+        $('#action_restriction_Note').prop('checked', true);
+        $('#action_expires').val('1s');
+      "}
+                  >
+                    Add internal note
+                  </div>
+                </div>
+                  <div
+                    class={"btn btn-outline-#{bsname} btn-block"}
+                    onclick={"
+        $('#action_restriction_Login').prop('checked', true);
+        $('#action_reason').val('Permanent ban, possibly a previously banned user.');
+        $('#action_expires').val('1100 years');
+      "}
+                  >
+                    Single account permaban
+                  </div>
+              </div>
+              <div class="row mt-4" id="reports-row">
+                <div class="col">
+                  <div
+                    class="btn btn-outline-secondary"
+                    onclick="
+        $('.restrictions-col .form-check-input').prop('checked', false);
+      "
+                  >
+                    Clear all restrictions
+                  </div>
+                  <div class="float-end">
+                    <span class="btn btn-outline-secondary" onclick="select_all_reports()">
+                      Select all reports
+                    </span>
+                    <span class="btn btn-outline-secondary" onclick="clear_all_reports()">
+                      Clear all reports
+                    </span>
+                  </div>
+
+                  <h5 class="mt-2">Which reports (if any) to link to this action?</h5>
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Reporter</th>
+                        <th>Type</th>
+                        <th>Reason</th>
+                        <th>&nbsp;</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <%= for r <- @reports do %>
+                        <tr>
+                          <td><%= r.reporter.name %></td>
+                          <td><%= r.type %>/<%= r.sub_type %></td>
+                          <td><%= r.extra_text %></td>
+                          <td>
+                            <%= central_component("checkbox",
+                              id: "action_report_#{r.id}",
+                              name: "action[reports][#{r.id}]",
+                              label: "",
+                              value: r.id,
+                              checked: Enum.member?(@selected_report_ids, r.id)
+                            ) %>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-lg-12">
+                  <button type="submit" class={"btn btn-#{bsname} float-end"}>
+                    Apply action
+                  </button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="row mt-4" id="reports-row">
+            <div class="col">
+              <h4>Past Actions</h4>
+
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+
+                    <th>Reason</th>
+                    <th>Notes</th>
+                    <th>Restrictions</th>
+
+                    <th>Started</th>
+                    <th>Expires</th>
+                    <th>Duration</th>
+
+                    <th colspan="2">&nbsp;</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%= for action <- @past_actions do %>
+                    <tr>
+                      <td><%= action.target.name %></td>
+                      <td><%= action.reason |> String.slice(0..100) %></td>
+                      <td><%= action.notes && (action.notes |> String.slice(0..100)) %></td>
+                      <td><%= action.restrictions |> Enum.join(", ") %></td>
+
+                      <td><%= action.inserted_at |> date_to_str(format: :hms_or_ymd) %></td>
+                      <%= if action.expires do %>
+                        <%= if Timex.compare(Timex.now(), action.expires) == 1 do %>
+                          <td>Expired</td>
+                        <% else %>
+                          <td><%= action.expires |> date_to_str(format: :hms_or_ymd) %></td>
+                        <% end %>
+
+                        <td><%= duration_to_str(action.inserted_at, action.expires) %></td>
+                      <% else %>
+                        <td colspan="2" class="text-warning">
+                          Permanent
+                        </td>
+                      <% end %>
+
+                      <td>
+                        <a
+                          href={~p"/moderation/action/#{action.id}"}
+                          class="btn btn-secondary btn-sm"
+                        >
+                          Show
+                        </a>
+                      </td>
+
+                      <td>
+                        <a
+                          href={~p"/teiserver/admin/user/#{action.target_id}"}
+                          class="btn btn-secondary btn-sm"
+                        >
+                          User
+                        </a>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
